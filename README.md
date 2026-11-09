@@ -7,8 +7,7 @@
 - 기울기 센서는 https 주소에서만 동작합니다 (iPad는 권한 허용 필요).
 - 센서가 없으면 경사각 슬라이더로 조절할 수 있습니다.
 
-## 3D 투석기 공성전
+## 관련 프로젝트
 
-태블릿을 앞뒤로 기울여 발사각, 좌우로 기울여 방향을 정하고, 화면을 아래로 당겨 힘을 조절해 성 안의 물건을 맞히는 3D 게임입니다.
-
-- 실행 주소: https://goodssam012.github.io/ramp-energy-simulator/투석기게임/
+- 3D 투석기 공성전은 별도 저장소로 옮겼습니다: https://github.com/goodssam012/catapult-siege
+  - 실행 주소: https://goodssam012.github.io/catapult-siege/
