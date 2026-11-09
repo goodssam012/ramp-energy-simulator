@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>경사로 운동에너지 실험실</title>
+<style>
+  :root{
+    --bg:#f3f5f9; --card:#fff; --ink:#1d2433; --sub:#5d6678; --line:#dde2ea;
+    --accent:#2f6fec; --ep:#3b82f6; --ek:#f59e0b; --rot:#a855f7; --car:#16a34a; --heat:#94a3b8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:#1d2433;color:#fff;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header p{margin:0;font-size:13px;opacity:.75}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:14px;padding:14px;max-width:1500px;margin:0 auto}
+  .wrap>*{min-width:0}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .stage{padding:0;overflow:hidden;position:relative}
+  #sim{display:block;width:100%;height:440px;touch-action:none}
+  .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:12px;border-top:1px solid var(--line)}
+  @media (max-width:700px){.stats{grid-template-columns:repeat(3,1fr)}}
+  .stat{background:var(--bg);border-radius:10px;padding:8px 10px}
+  .stat b{display:block;font-size:12px;color:var(--sub);font-weight:600}
+  .stat span{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .stat small{font-size:12px;color:var(--sub);margin-left:2px}
+  .stat.ek{background:#fff6e6}.stat.ek span{color:#b45309}
+  .stat.p{background:#eaf1ff}.stat.p span{color:#1d4ed8}
+  h2{font-size:15px;margin:0 0 10px}
+  .row{margin-bottom:12px}
+  .row label{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:4px}
+  .row label em{font-style:normal;color:var(--accent);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;height:28px;accent-color:var(--accent)}
+  input[type=range]:disabled{opacity:.45}
+  select{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);font-size:14px;background:#fff}
+  .btns{display:flex;gap:8px}
+  button{font:inherit;border:0;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink)}
+  button.primary{background:var(--accent);color:#fff;flex:1}
+  button:disabled{opacity:.45;cursor:default}
+  .sensor{background:#eef3ff;border-radius:12px;padding:10px;margin-bottom:14px}
+  .sensor .btns button{flex:1;padding:10px;font-size:14px}
+  #sensorBtn.on{background:#16a34a;color:#fff}
+  .sensor p{margin:8px 0 0;font-size:12.5px;color:var(--sub);line-height:1.45}
+  .bars{display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .bar{display:grid;grid-template-columns:92px 1fr 64px;align-items:center;gap:6px}
+  .bar .track{height:14px;background:var(--bg);border-radius:7px;overflow:hidden}
+  .bar .fill{height:100%;width:0;border-radius:7px}
+  .bar span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  #chart{width:100%;height:150px;display:block;margin-top:10px}
+  .result{font-size:13.5px;line-height:1.7;margin-top:10px;background:var(--bg);border-radius:10px;padding:10px;display:none}
+  .result b{color:var(--accent)}
+  .bottom{grid-column:1/-1}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th{color:var(--sub);font-weight:600;background:var(--bg)}
+  th:first-child,td:first-child{text-align:center}
+  .tablewrap{overflow-x:auto}
+  .hint{font-size:13px;color:var(--sub);margin:8px 0 0}
+  .muted{color:var(--sub);font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚙️ 경사로 운동에너지 실험실</h1>
+  <p>태블릿을 기울여 경사각을 정하고, 높이를 맞춘 뒤 쇠구슬을 굴려 보세요.</p>
+</header>
+
+<div class="wrap">
+  <!-- 실험 화면 -->
+  <div class="card stage">
+    <canvas id="sim"></canvas>
+    <div class="stats">
+      <div class="stat"><b>경사각</b><span id="sTheta">30.0</span><small>°</small></div>
+      <div class="stat"><b>높이</b><span id="sH">0.50</span><small>m</small></div>
+      <div class="stat"><b>속력</b><span id="sV">0.00</span><small>m/s</small></div>
+      <div class="stat"><b>위치에너지</b><span id="sEp">0.000</span><small>J</small></div>
+      <div class="stat ek"><b>운동에너지</b><span id="sEk">0.000</span><small>J</small></div>
+      <div class="stat p"><b>운동량</b><span id="sP">0.000</span><small>kg·m/s</small></div>
+    </div>
+  </div>
+
+  <!-- 조작 패널 -->
+  <div class="card">
+    <div class="sensor">
+      <div class="btns">
+        <button id="sensorBtn">📱 기울기 센서 켜기</button>
+        <button id="zeroBtn" disabled>영점 맞추기</button>
+      </div>
+      <p id="sensorMsg">태블릿을 책상에 눕힌 뒤 한쪽을 들어 올리면 그 각도가 경사각이 됩니다. 센서가 없으면 아래 슬라이더를 쓰세요.</p>
+    </div>
+
+    <div class="row">
+      <label>경사각 θ <em id="vTheta">30.0°</em></label>
+      <input id="theta" type="range" min="5" max="60" step="0.5" value="30">
+    </div>
+    <div class="row">
+      <label>출발 높이 h <em id="vH">0.50 m</em></label>
+      <input id="h" type="range" min="0.10" max="1.00" step="0.01" value="0.50">
+    </div>
+    <div class="row">
+      <label>쇠구슬 질량 m <em id="vM">100 g</em></label>
+      <input id="m" type="range" min="10" max="300" step="5" value="100">
+    </div>
+    <div class="row">
+      <label>자동차 질량 M <em id="vCar">300 g</em></label>
+      <input id="car" type="range" min="50" max="1000" step="10" value="300">
+    </div>
+    <div class="row">
+      <label>반발 계수 e <em id="vE">0.60</em></label>
+      <input id="e" type="range" min="0" max="1" step="0.05" value="0.6">
+    </div>
+    <div class="row">
+      <label>운동 방식</label>
+      <select id="mode">
+        <option value="roll">구르기 (마찰 손실 없음)</option>
+        <option value="slide">미끄러지기 (마찰 없음)</option>
+        <option value="fric">미끄러지기 (마찰 있음)</option>
+      </select>
+    </div>
+    <div class="row" id="muRow" style="display:none">
+      <label>경사면 마찰 계수 μ <em id="vMu">0.10</em></label>
+      <input id="mu" type="range" min="0" max="0.5" step="0.01" value="0.1">
+    </div>
+    <div class="row">
+      <label>재생 속도</label>
+      <select id="speed">
+        <option value="1">실제 속도</option>
+        <option value="0.5">느리게 (1/2배)</option>
+        <option value="0.2">아주 느리게 (1/5배)</option>
+      </select>
+    </div>
+    <div class="btns">
+      <button id="goBtn" class="primary">▶ 굴리기</button>
+      <button id="resetBtn">↺ 다시</button>
+    </div>
+  </div>
+
+  <!-- 에너지 -->
+  <div class="card">
+    <h2>에너지 변화</h2>
+    <div class="bars">
+      <div class="bar"><span>위치에너지</span><div class="track"><div class="fill" id="bEp" style="background:var(--ep)"></div></div><span id="tEp">0</span></div>
+      <div class="bar"><span>운동에너지</span><div class="track"><div class="fill" id="bEk" style="background:var(--ek)"></div></div><span id="tEk">0</span></div>
+      <div class="bar" id="rotBar"><span>회전 에너지</span><div class="track"><div class="fill" id="bRot" style="background:var(--rot)"></div></div><span id="tRot">0</span></div>
+      <div class="bar"><span>자동차 운동E</span><div class="track"><div class="fill" id="bCar" style="background:var(--car)"></div></div><span id="tCar">0</span></div>
+      <div class="bar"><span>열·소리 등</span><div class="track"><div class="fill" id="bHeat" style="background:var(--heat)"></div></div><span id="tHeat">0</span></div>
+    </div>
+    <canvas id="chart"></canvas>
+    <div class="muted">단위: J · 그래프 가로축은 시간(s)</div>
+  </div>
+
+  <!-- 충돌 결과 -->
+  <div class="card">
+    <h2>충돌 결과</h2>
+    <div id="noResult" class="muted">쇠구슬이 자동차에 부딪히면 결과가 나타납니다.</div>
+    <div class="result" id="result"></div>
+  </div>
+
+  <!-- 기록 -->
+  <div class="card bottom">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="margin:0">실험 기록</h2>
+      <button id="clearBtn" style="padding:8px 12px;font-size:13px">기록 지우기</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>회차</th><th>방식</th><th>경사각(°)</th><th>높이(m)</th><th>구슬(g)</th><th>자동차(g)</th>
+          <th>도달 시간(s)</th><th>충돌 속력(m/s)</th><th>운동에너지(J)</th><th>운동량(kg·m/s)</th>
+          <th>자동차 속력(m/s)</th><th>자동차 이동거리(m)</th>
+        </tr></thead>
+        <tbody id="log"></tbody>
+      </table>
+    </div>
+    <p class="hint">💡 높이는 그대로 두고 경사각만 바꿔 보세요. 충돌 직전 운동에너지와 운동량은 어떻게 달라지나요? 높이를 바꾸면 어떤가요?</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const G = 9.8;          // 중력가속도
+  const GAP = 0.30;       // 경사로 끝 ~ 자동차 거리 (m)
+  const MU_CAR = 0.12;    // 자동차 바퀴 구름 저항
+  const BALL_R = 13;      // 화면상 구슬 반지름(px)
+  const CAR_W = 100;      // 화면상 자동차 길이(px)
+  const MODE_NAME = {roll:'구르기', slide:'미끄러짐', fric:'마찰'};
+
+  const P = {theta:30, h:0.5, m:0.1, M:0.3, e:0.6, mode:'roll', mu:0.1, speed:1};
+  let S, view = {sc:100, ox:0, gy:0, W:0, H:0};
+  let records = [];
+
+  // ---------- 물리 ----------
+  const rad = () => P.theta * Math.PI / 180;
+  const rampLen = () => P.h / Math.sin(rad());
+  const rampRun = () => P.h / Math.tan(rad());
+  function accel(){
+    const t = rad();
+    if (P.mode === 'roll') return 5/7 * G * Math.sin(t);           // 속이 찬 구의 구름 운동
+    if (P.mode === 'slide') return G * Math.sin(t);
+    return G * (Math.sin(t) - P.mu * Math.cos(t));
+  }
+  function predictCarDist(){
+    const a = accel(); if (a <= 0) return 0;
+    const v = Math.sqrt(2 * a * rampLen());
+    const V = (1 + P.e) * P.m * v / (P.m + P.M);
+    return V * V / (2 * MU_CAR * G);
+  }
+
+  function reset(){
+    S = {phase:'ready', s:0, v:0, x:0, t:0, carX:GAP, carV:0, rot:0, wheel:0,
+         heat:0, carHeat:0, ballHeat:0, col:null, samples:[], logged:false, tBottom:0, msg:''};
+    $('result').style.display = 'none'; $('noResult').style.display = '';
+    lockInputs(false);
+    $('goBtn').disabled = false;
+  }
+
+  function step(dt){
+    if (S.phase === 'ready' || S.phase === 'done') return;
+    S.t += dt;
+    const sc = view.sc;
+    if (S.phase === 'ramp'){
+      const a = accel(), L = rampLen();
+      S.v += a * dt; S.s += S.v * dt;
+      if (P.mode === 'fric') S.heat = P.mu * P.m * G * Math.cos(rad()) * S.s;
+      if (S.s >= L){
+        S.s = L; S.v = Math.sqrt(2 * a * L);
+        S.tBottom = Math.sqrt(2 * L / a);
+        if (P.mode === 'fric') S.heat = P.mu * P.m * G * Math.cos(rad()) * L;
+        S.phase = 'flat'; S.x = 0;
+      }
+      S.rot += S.v * dt * sc / BALL_R;
+    } else if (S.phase === 'flat'){
+      S.x += S.v * dt;
+      S.rot += S.v * dt * sc / BALL_R;
+      const contact = S.carX - BALL_R / sc;
+      if (S.x >= contact){
+        S.x = contact;
+        const v = S.v, m = P.m, M = P.M, e = P.e;
+        const v1 = (m - e * M) / (m + M) * v;
+        const V  = (1 + e) * m * v / (m + M);
+        const keBefore = ballKE(v);
+        S.col = {v, v1, V, p:m*v, p1:m*v1, P:M*V, keBefore,
+                 ke1:0.5*m*v1*v1, keCar:0.5*M*V*V, t:S.t};
+        S.v = v1; S.carV = V; S.carX0 = S.carX;
+        S.phase = 'after';
+        showResult();
+      }
+    } else if (S.phase === 'after'){
+      // 자동차
+      if (S.carV > 0){
+        const nv = Math.max(0, S.carV - MU_CAR * G * dt);
+        S.carX += (S.carV + nv) / 2 * dt;
+        S.carHeat += 0.5 * P.M * (S.carV*S.carV - nv*nv);
+        S.carV = nv;
+        S.wheel += S.carV * dt * sc / 11;
+      }
+      // 구슬 (충돌 후에도 서서히 멈춤)
+      if (S.v !== 0){
+        const sgn = Math.sign(S.v);
+        const nv = S.v - sgn * MU_CAR * G * dt;
+        const v2 = (Math.sign(nv) !== sgn) ? 0 : nv;
+        S.x += (S.v + v2) / 2 * dt;
+        S.ballHeat += 0.5 * P.m * (S.v*S.v - v2*v2);
+        S.v = v2;
+        if (S.x < 0){ S.x = 0; S.v = 0; }
+        S.rot += S.v * dt * sc / BALL_R;
+      }
+      if (S.carV === 0 && S.v === 0){
+        S.phase = 'done';
+        logRecord();
+        $('goBtn').disabled = true;
+      }
+    }
+    sample();
+  }
+
+  // 구슬 높이
+  function ballY(){
+    if (S.phase === 'ready' || S.phase === 'ramp') return P.h - S.s * Math.sin(rad());
+    return 0;
+  }
+  function ballKE(v){ return 0.5 * P.m * v * v; }
+  function ballRotE(v){ return P.mode === 'roll' ? 0.2 * P.m * v * v : 0; } // ½Iω², I=2/5 mr²
+
+  function energies(){
+    const ep = P.m * G * ballY();
+    const ek = ballKE(S.v);
+    const rot = ballRotE(S.v);
+    const car = 0.5 * P.M * S.carV * S.carV;
+    const total = P.m * G * P.h;
+    const heat = Math.max(0, total - ep - ek - rot - car);
+    return {ep, ek, rot, car, heat, total};
+  }
+  function sample(){
+    const E = energies();
+    const last = S.samples[S.samples.length - 1];
+    if (!last || S.t - last.t > 0.01) S.samples.push({t:S.t, ...E});
+  }
+
+  // ---------- 화면 ----------
+  const cv = $('sim'), ctx = cv.getContext('2d');
+  const ch = $('chart'), cx = ch.getContext('2d');
+
+  function fit(c, g){
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w*dpr) || c.height !== Math.round(h*dpr)){
+      c.width = Math.round(w*dpr); c.height = Math.round(h*dpr);
+    }
+    g.setTransform(dpr,0,0,dpr,0,0);
+    return [w, h];
+  }
+
+  function computeScale(){
+    const W = view.W, H = view.H;
+    view.gy = H - 56;
+    const padL = 70, padR = 30;
+    const run = rampRun();
+    const span = run + GAP + Math.min(predictCarDist(), 5) + 0.05;
+    const avail = W - padL - padR - CAR_W - 10;
+    const scX = avail / span;
+    const scY = (view.gy - 60) / P.h;
+    view.sc = Math.max(5, Math.min(scX, scY, 900));
+    view.ox = padL + run * view.sc;
+  }
+  const px = (x, y) => [view.ox + x * view.sc, view.gy - y * view.sc];
+
+  function draw(){
+    const [W, H] = fit(cv, ctx);
+    view.W = W; view.H = H;
+    if (S.phase === 'ready') computeScale();
+    const th = rad(), run = rampRun(), gy = view.gy;
+
+    // 배경
+    const sky = ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#e8f0ff'); sky.addColorStop(1,'#f8fbff');
+    ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+
+    // 눈금(1 m 격자 느낌)
+    ctx.fillStyle = '#d9cbb3'; ctx.fillRect(0, gy, W, H - gy);
+    ctx.fillStyle = '#c4b293'; ctx.fillRect(0, gy, W, 4);
+
+    // 바닥 레일
+    const [fx] = px(0,0);
+    ctx.fillStyle = '#8a8f99'; ctx.fillRect(fx, gy - 3, W - fx, 3);
+
+    // 경사로
+    const [tx, ty] = px(-run, P.h);
+    const [bx, by] = px(-run, 0);
+    const wood = ctx.createLinearGradient(tx, ty, fx, gy);
+    wood.addColorStop(0,'#d6a46a'); wood.addColorStop(1,'#b97f45');
+    ctx.fillStyle = wood;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(fx, gy); ctx.lineTo(bx, by); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#7a4f24'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(fx, gy); ctx.stroke();
+    // 출발 받침
+    ctx.fillStyle = '#7a4f24'; ctx.fillRect(tx - 8, ty - 22, 6, 24);
+
+    // 높이 표시
+    ctx.strokeStyle = '#2f6fec'; ctx.fillStyle = '#2f6fec'; ctx.lineWidth = 1.5;
+    const hx = bx - 26;
+    ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(hx - 6, ty); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+    arrow(hx, gy, hx, ty); arrow(hx, ty, hx, gy);
+    ctx.save(); ctx.translate(hx - 10, (ty + gy) / 2); ctx.rotate(-Math.PI/2);
+    ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`h = ${P.h.toFixed(2)} m`, 0, 0); ctx.restore();
+
+    // 각도 표시
+    ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(fx, gy, 46, Math.PI, Math.PI + th); ctx.stroke();
+    ctx.fillStyle = '#e11d48'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'right';
+    const mid = Math.PI + th / 2;
+    ctx.fillText(`${P.theta.toFixed(1)}°`, fx + Math.cos(mid) * 54 - 2, gy + Math.sin(mid) * 54 + 5);
+
+    // 자동차
+    const [cxp] = px(S.carX, 0);
+    drawCar(cxp, gy);
+
+    // 쇠구슬
+    let bpx, bpy;
+    if (S.phase === 'ready' || S.phase === 'ramp'){
+      [bpx, bpy] = px(-run + S.s * Math.cos(th), P.h - S.s * Math.sin(th));
+      bpx += Math.sin(th) * BALL_R; bpy -= Math.cos(th) * BALL_R;
+    } else {
+      [bpx, bpy] = px(S.x, 0); bpy -= BALL_R + 2;
+    }
+    drawBall(bpx, bpy);
+
+    // 속도 화살표
+    if (Math.abs(S.v) > 0.01){
+      const len = Math.min(120, Math.abs(S.v) * 30) * Math.sign(S.v);
+      let dx = len, dy = 0;
+      if (S.phase === 'ramp'){ dx = len * Math.cos(th); dy = len * Math.sin(th); }
+      ctx.strokeStyle = '#f59e0b'; ctx.fillStyle = '#f59e0b'; ctx.lineWidth = 3;
+      arrow(bpx, bpy - 24, bpx + dx, bpy - 24 + dy);
+      ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`${Math.abs(S.v).toFixed(2)} m/s`, bpx + 4, bpy - 34);
+    }
+    if (S.carV > 0.01){
+      const len = Math.min(120, S.carV * 30);
+      ctx.strokeStyle = '#16a34a'; ctx.fillStyle = '#16a34a'; ctx.lineWidth = 3;
+      arrow(cxp + CAR_W/2, gy - 82, cxp + CAR_W/2 + len, gy - 82);
+      ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`${S.carV.toFixed(2)} m/s`, cxp + CAR_W/2, gy - 92);
+    }
+
+    // 충돌 효과
+    if (S.col && S.t - S.col.t < 0.25){
+      const k = (S.t - S.col.t) / 0.25;
+      ctx.strokeStyle = `rgba(245,158,11,${1-k})`; ctx.lineWidth = 3;
+      for (let i = 0; i < 8; i++){
+        const a = i / 8 * Math.PI * 2, r1 = 14 + k*10, r2 = 24 + k*24;
+        ctx.beginPath(); ctx.moveTo(bpx + BALL_R + Math.cos(a)*r1, bpy + Math.sin(a)*r1);
+        ctx.lineTo(bpx + BALL_R + Math.cos(a)*r2, bpy + Math.sin(a)*r2); ctx.stroke();
+      }
+    }
+
+    // 상단 정보
+    ctx.fillStyle = 'rgba(29,36,51,.8)'; ctx.font = '600 14px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`시간 ${S.t.toFixed(2)} s   경사로 길이 ${rampLen().toFixed(2)} m`, 14, 24);
+    if (S.phase === 'done' && S.carX0 !== undefined)
+      ctx.fillText(`자동차 이동거리 ${(S.carX - S.carX0).toFixed(2)} m`, 14, 46);
+    if (S.msg){ ctx.fillStyle = '#e11d48'; ctx.fillText(S.msg, 14, 46); }
+    if (sensor.on && S.phase === 'ready'){
+      ctx.fillStyle = '#16a34a'; ctx.textAlign = 'right';
+      ctx.fillText('📱 센서로 각도 조절 중', W - 14, 24);
+    }
+
+    drawChart();
+    updatePanel();
+  }
+
+  function arrow(x1, y1, x2, y2){
+    const a = Math.atan2(y2 - y1, x2 - x1), s = 8;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - s*Math.cos(a - 0.45), y2 - s*Math.sin(a - 0.45));
+    ctx.lineTo(x2 - s*Math.cos(a + 0.45), y2 - s*Math.sin(a + 0.45));
+    ctx.closePath(); ctx.fill();
+  }
+
+  function drawBall(x, y){
+    const g = ctx.createRadialGradient(x - 4, y - 5, 2, x, y, BALL_R);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#c9ced6'); g.addColorStop(1, '#4b5563');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, BALL_R, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(55,65,81,.55)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(S.rot) * BALL_R * 0.8, y + Math.sin(S.rot) * BALL_R * 0.8); ctx.stroke();
+  }
+
+  function drawCar(x, gy){
+    const w = CAR_W;
+    // 그림자
+    ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(x + w/2, gy + 2, w/2, 5, 0, 0, Math.PI*2); ctx.fill();
+    // 차체
+    ctx.fillStyle = '#e23b3b';
+    roundRect(x + 2, gy - 48, w - 4, 32, 8); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 24, gy - 46); ctx.lineTo(x + 36, gy - 70); ctx.lineTo(x + 72, gy - 70);
+    ctx.lineTo(x + 86, gy - 46); ctx.closePath(); ctx.fill();
+    // 창문
+    ctx.fillStyle = '#bfe3ff';
+    ctx.beginPath(); ctx.moveTo(x + 31, gy - 47); ctx.lineTo(x + 39, gy - 65); ctx.lineTo(x + 52, gy - 65); ctx.lineTo(x + 52, gy - 47); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 56, gy - 47); ctx.lineTo(x + 56, gy - 65); ctx.lineTo(x + 70, gy - 65); ctx.lineTo(x + 80, gy - 47); ctx.closePath(); ctx.fill();
+    // 범퍼(충돌면)
+    ctx.fillStyle = '#6b7280'; roundRect(x - 2, gy - 36, 7, 16, 3); ctx.fill();
+    // 라이트
+    ctx.fillStyle = '#fde68a'; ctx.fillRect(x + w - 8, gy - 42, 5, 7);
+    // 바퀴
+    [x + 24, x + w - 24].forEach(cxw => {
+      ctx.fillStyle = '#1f2937'; ctx.beginPath(); ctx.arc(cxw, gy - 11, 11, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#9ca3af'; ctx.beginPath(); ctx.arc(cxw, gy - 11, 5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++){
+        const a = S.wheel + i * Math.PI * 2 / 3;
+        ctx.beginPath(); ctx.moveTo(cxw, gy - 11); ctx.lineTo(cxw + Math.cos(a)*9, gy - 11 + Math.sin(a)*9); ctx.stroke();
+      }
+    });
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${Math.round(P.M*1000)} g`, x + w/2, gy - 25);
+  }
+  function roundRect(x, y, w, h, r){
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  function drawChart(){
+    const [W, H] = fit(ch, cx);
+    cx.clearRect(0, 0, W, H);
+    const pad = {l:38, r:8, t:8, b:20};
+    const total = P.m * G * P.h;
+    const tmax = Math.max(1, S.samples.length ? S.samples[S.samples.length-1].t : 1);
+    const X = t => pad.l + t / tmax * (W - pad.l - pad.r);
+    const Y = e => H - pad.b - e / (total * 1.05) * (H - pad.t - pad.b);
+    cx.strokeStyle = '#dde2ea'; cx.lineWidth = 1; cx.fillStyle = '#5d6678'; cx.font = '11px sans-serif';
+    cx.textAlign = 'right';
+    for (let i = 0; i <= 2; i++){
+      const e = total * i / 2;
+      cx.beginPath(); cx.moveTo(pad.l, Y(e)); cx.lineTo(W - pad.r, Y(e)); cx.stroke();
+      cx.fillText(e.toFixed(2), pad.l - 4, Y(e) + 4);
+    }
+    cx.textAlign = 'center';
+    cx.fillText('0', X(0), H - 5); cx.fillText(tmax.toFixed(1) + ' s', X(tmax) - 14, H - 5);
+    if (S.samples.length < 2) return;
+    [['ep','#3b82f6'],['ek','#f59e0b'],['rot','#a855f7'],['car','#16a34a']].forEach(([k, c]) => {
+      if (k === 'rot' && P.mode !== 'roll') return;
+      cx.strokeStyle = c; cx.lineWidth = 2; cx.beginPath();
+      S.samples.forEach((s, i) => { const xx = X(s.t), yy = Y(s[k]); i ? cx.lineTo(xx, yy) : cx.moveTo(xx, yy); });
+      cx.stroke();
+    });
+    if (S.col){ cx.strokeStyle = '#e11d48'; cx.setLineDash([3,3]); cx.beginPath();
+      cx.moveTo(X(S.col.t), pad.t); cx.lineTo(X(S.col.t), H - pad.b); cx.stroke(); cx.setLineDash([]); }
+  }
+
+  function updatePanel(){
+    const E = energies();
+    $('sTheta').textContent = P.theta.toFixed(1);
+    $('sH').textContent = P.h.toFixed(2);
+    $('sV').textContent = Math.abs(S.v).toFixed(2);
+    $('sEp').textContent = E.ep.toFixed(3);
+    $('sEk').textContent = (E.ek + E.rot).toFixed(3);
+    $('sP').textContent = (P.m * Math.abs(S.v)).toFixed(3);
+    const pct = v => (E.total > 0 ? Math.min(100, v / E.total * 100) : 0) + '%';
+    [['Ep','ep'],['Ek','ek'],['Rot','rot'],['Car','car'],['Heat','heat']].forEach(([id, k]) => {
+      $('b' + id).style.width = pct(E[k]); $('t' + id).textContent = E[k].toFixed(3);
+    });
+    $('rotBar').style.display = P.mode === 'roll' ? '' : 'none';
+  }
+
+  function showResult(){
+    const c = S.col;
+    const lost = c.keBefore + ballRotE(c.v) - c.ke1 - ballRotE(c.v1) - c.keCar;
+    $('noResult').style.display = 'none';
+    const r = $('result'); r.style.display = 'block';
+    r.innerHTML = `
+      충돌 직전 쇠구슬 속력: <b>${c.v.toFixed(2)} m/s</b><br>
+      충돌 직전 운동에너지 ½mv²: <b>${c.keBefore.toFixed(3)} J</b>${P.mode==='roll' ? ` <span class="muted">(+ 회전 ${ballRotE(c.v).toFixed(3)} J)</span>`:''}<br>
+      충돌 직전 운동량 mv: <b>${c.p.toFixed(3)} kg·m/s</b><hr style="border:0;border-top:1px solid #dde2ea">
+      충돌 후 쇠구슬: ${c.v1.toFixed(2)} m/s, 운동량 ${c.p1.toFixed(3)} kg·m/s<br>
+      충돌 후 자동차: <b>${c.V.toFixed(2)} m/s</b>, 운동량 ${c.P.toFixed(3)} kg·m/s<br>
+      운동량의 합: ${c.p.toFixed(3)} → <b>${(c.p1 + c.P).toFixed(3)}</b> kg·m/s (보존)<br>
+      자동차가 받은 운동에너지: <b>${c.keCar.toFixed(3)} J</b><br>
+      <span class="muted">충돌로 열·소리 등으로 바뀐 에너지 ≈ ${Math.max(0, lost).toFixed(3)} J</span>`;
+  }
+
+  function logRecord(){
+    if (S.logged || !S.col) return; S.logged = true;
+    records.push({
+      mode: MODE_NAME[P.mode], theta: P.theta, h: P.h, m: P.m*1000, M: P.M*1000,
+      t: S.tBottom, v: S.col.v, ke: S.col.keBefore + ballRotE(S.col.v), p: S.col.p,
+      V: S.col.V, d: S.carX - S.carX0
+    });
+    renderLog();
+  }
+  function renderLog(){
+    $('log').innerHTML = records.map((r, i) => `<tr>
+      <td>${i+1}</td><td>${r.mode}</td><td>${r.theta.toFixed(1)}</td><td>${r.h.toFixed(2)}</td>
+      <td>${r.m}</td><td>${r.M}</td><td>${r.t.toFixed(2)}</td><td>${r.v.toFixed(2)}</td>
+      <td><b>${r.ke.toFixed(3)}</b></td><td><b>${r.p.toFixed(3)}</b></td><td>${r.V.toFixed(2)}</td><td>${r.d.toFixed(2)}</td>
+    </tr>`).join('') || '<tr><td colspan="12" class="muted" style="text-align:center">아직 기록이 없습니다.</td></tr>';
+  }
+
+  // ---------- 입력 ----------
+  function lockInputs(lock){
+    ['h','m','car','e','mode','mu'].forEach(id => $(id).disabled = lock);
+    $('theta').disabled = lock || sensor.on;
+  }
+  function setTheta(v){
+    P.theta = Math.round(v * 2) / 2;
+    $('theta').value = P.theta; $('vTheta').textContent = P.theta.toFixed(1) + '°';
+  }
+  function bind(id, fn){ $(id).addEventListener('input', () => { fn($(id).value); if (S.phase !== 'ready') reset(); }); }
+  bind('theta', v => setTheta(+v));
+  bind('h', v => { P.h = +v; $('vH').textContent = P.h.toFixed(2) + ' m'; });
+  bind('m', v => { P.m = v / 1000; $('vM').textContent = v + ' g'; });
+  bind('car', v => { P.M = v / 1000; $('vCar').textContent = v + ' g'; });
+  bind('e', v => { P.e = +v; $('vE').textContent = (+v).toFixed(2); });
+  bind('mu', v => { P.mu = +v; $('vMu').textContent = (+v).toFixed(2); });
+  $('mode').addEventListener('change', e => {
+    P.mode = e.target.value; $('muRow').style.display = P.mode === 'fric' ? '' : 'none';
+    if (S.phase !== 'ready') reset();
+  });
+  $('speed').addEventListener('change', e => P.speed = +e.target.value);
+
+  $('goBtn').addEventListener('click', () => {
+    if (S.phase !== 'ready') return;
+    if (accel() <= 0){ S.msg = '마찰이 너무 커서 구슬이 움직이지 않아요. 경사각을 키워 보세요.'; return; }
+    S.msg = ''; S.phase = 'ramp'; S.samples = []; sample();
+    lockInputs(true); $('goBtn').disabled = true;
+  });
+  $('resetBtn').addEventListener('click', reset);
+  $('clearBtn').addEventListener('click', () => { records = []; renderLog(); });
+
+  // ---------- 기울기 센서 ----------
+  const sensor = {on:false, raw:0, filt:null, offset:0, got:false};
+
+  function screenAngle(){
+    if (screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle;
+    return window.orientation || 0;
+  }
+  function onMotion(ev){
+    const a = ev.accelerationIncludingGravity;
+    if (!a || a.x == null) return;
+    sensor.got = true;
+    // 화면 가로축 방향의 중력 성분으로 기울기 계산 (눕혀서 들어 올리기 / 세워서 돌리기 모두 동작)
+    let sx;
+    switch ((screenAngle() + 360) % 360){
+      case 90:  sx = a.y;  break;
+      case 180: sx = -a.x; break;
+      case 270: sx = -a.y; break;
+      default:  sx = a.x;
+    }
+    const gm = Math.hypot(a.x, a.y, a.z) || G;
+    const tilt = Math.asin(Math.max(-1, Math.min(1, sx / gm))) * 180 / Math.PI;
+    sensor.raw = tilt;
+    sensor.filt = sensor.filt == null ? tilt : sensor.filt * 0.85 + tilt * 0.15;
+    if (sensor.on && S.phase === 'ready'){
+      const ang = Math.abs(sensor.filt - sensor.offset);
+      setTheta(Math.max(5, Math.min(60, ang)));
+    }
+    $('sensorMsg').textContent = `센서 기울기: ${(sensor.filt - sensor.offset).toFixed(1)}° (5°~60° 범위로 적용). 구슬이 출발하면 각도가 고정됩니다.`;
+  }
+
+  $('sensorBtn').addEventListener('click', async () => {
+    if (sensor.on){
+      sensor.on = false; $('sensorBtn').classList.remove('on');
+      $('sensorBtn').textContent = '📱 기울기 센서 켜기'; $('zeroBtn').disabled = true;
+      lockInputs(S.phase !== 'ready');
+      $('sensorMsg').textContent = '센서를 껐습니다. 슬라이더로 각도를 조절하세요.';
+      return;
+    }
+    if (!window.isSecureContext){
+      $('sensorMsg').textContent = '⚠️ 센서는 https 주소에서만 동작합니다. 웹 호스팅(https)으로 열어 주세요.';
+    }
+    try {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+        const res = await DeviceMotionEvent.requestPermission();   // iPad(iOS) 권한 요청
+        if (res !== 'granted'){ $('sensorMsg').textContent = '센서 권한이 거부되었습니다. 설정에서 동작 및 방향 접근을 허용해 주세요.'; return; }
+      }
+    } catch (err){
+      $('sensorMsg').textContent = '센서 권한을 요청하지 못했습니다: ' + err.message; return;
+    }
+    window.addEventListener('devicemotion', onMotion);
+    sensor.on = true; $('sensorBtn').classList.add('on');
+    $('sensorBtn').textContent = '📱 센서 켜짐 (끄기)'; $('zeroBtn').disabled = false;
+    lockInputs(S.phase !== 'ready');
+    setTimeout(() => {
+      if (!sensor.got) $('sensorMsg').textContent = '센서 값이 들어오지 않습니다. 기울기 센서가 있는 태블릿/스마트폰에서 https 주소로 열어 주세요.';
+    }, 1500);
+  });
+  $('zeroBtn').addEventListener('click', () => {
+    if (sensor.filt != null) sensor.offset = sensor.filt;
+  });
+
+  // ---------- 실행 ----------
+  reset(); renderLog();
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now - last) / 1000) * P.speed; last = now;
+    for (let i = 0; i < 8; i++) step(dt / 8);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
